@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Report</title>
+    <style>
+      body {
+        background-image: url(https://images.pexels.com/photos/209831/pexels-photo-209831.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940);
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+        height: 500px;
+      }
+      p {
+        color: white;
+        font-size: 18px;
+        padding-top: 1%;
+        text-decoration: underline;
+        text-decoration-color: white;
+        text-decoration-thickness: 2px;
+      }
+      .container {
+        margin-top: 3%;
+        display: grid;
+        grid-template-areas:
+          "data map"
+          "forecast-day forecast-day";
+        grid-template-rows: 400px;
+      }
+      #data {
+        grid-area: data;
+        text-align: center;
+      }
+
+      #map {
+        grid-area: map;
+      }
+      .input {
+        margin: auto;
+        width: 40%;
+      }
+      .input input {
+        width: 60%;
+        height: 35px;
+        outline: none;
+        font-size: 16px;
+        font-style: italic;
+      }
+      button {
+        width: 22%;
+        height: 40px;
+        border: none;
+        background-color: thistle;
+        color: white;
+        cursor: pointer;
+      }
+      .forecast {
+        margin-top: 2%;
+        display: flex;
+        justify-content: space-around;
+      }
+      .forecast > div {
+        text-align: center;
+        width: 10%;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 10%;
+        color: white;
+        height: 160px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="input">
+      <input type="text" name="" id="city" placeholder="Enter City Name" />
+      <button onclick="get_Weather()">Search</button>
+    </div>
+    <div class="container">
+      <div id="data"></div>
+      <div id="map"></div>
+    </div>
+    <div class="forecast"></div>
+  </body>
+</html>
+
+<script>
+  async function get_Weather() {
+    var city = document.getElementById("city").value;
+    try {
+      let res = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=159e64183abbb4e5f69b04d1b6ea762c&units=metric`
+      );
+      let data = await res.json();
+      showWeather(data);
+      fetchForecast(data);
+      console.log("data:", data);
+      // lat = data.coord.lat;
+      // lon = data.coord.lon;
+    } catch (e) {
+      console.log("e:", e);
+    }
+  }
+  var forecastEl = document.getElementsByClassName("forecast");
+  let data = document.getElementById("data");
+  let map = document.getElementById("map");
+  function showWeather(i) {
+    data.innerHTML = "";
+    let feels_like = document.createElement("p");
+    feels_like.innerHTML = `Feels-like- ${i.main.feels_like}°C`;
+
+    let icon = i.weather[0].icon;
+    let ic = document.createElement("img");
+    ic.setAttribute("src", `http://openweathermap.org/img/w/${icon}.png`);
+
+    let humidity = document.createElement("p");
+    humidity.innerHTML = `Humidity- ${i.main.humidity}`;
+
+    let temp = document.createElement("p");
+    temp.innerHTML = `Temp- ${i.main.temp}°C`;
+
+    let min_temp = document.createElement("p");
+    min_temp.innerHTML = `Min-Temp- ${i.main.temp_min}°C`;
+
+    let max_temp = document.createElement("p");
+    max_temp.innerHTML = `Max-Temp- ${i.main.temp_min}°C`;
+
+    let pressure = document.createElement("p");
+    pressure.innerHTML = `Preassure- ${i.main.pressure}`;
+
+    let p = document.createElement("p");
+    p.innerText = "Today's Weather";
+
+    data.append(
+      p,
+      feels_like,
+      ic,
+      humidity,
+      temp,
+      min_temp,
+      max_temp,
+      pressure
+    );
+    var city = document.getElementById("city").value;
+    map.innerHTML = ` <iframe
+      width="100%"
+      height="100%"
+      id="gmap_canvas"
+      src="https://maps.google.com/maps?q=${city}&t=&z=13&ie=UTF8&iwloc=&output=embed"
+      frameborder="0"
+      scrolling="no"
+      marginheight="0"
+      marginwidth="0"
+    ></iframe
+    >`;
+  }
+  fetchForecast = function (c) {
+    lat = c.coord.lat;
+    lon = c.coord.lon;
+    var forecastEl = document.getElementsByClassName("forecast");
+
+    fetch(
+      `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=current,minutely,hourly,alerts&appid=159e64183abbb4e5f69b04d1b6ea762c&&units=metric`
+    )
+      .then(function (response) {
+        if (200 !== response.status) {
+          console.log(
+            "Looks like there was a problem. Status Code: " + response.status
+          );
+          return;
+        }
+
+        forecastEl[0].classList.add("loaded");
+
+        response.json().then(function (data) {
+          var fday = "";
+          data.daily.forEach((value, index) => {
+            if (index > 0) {
+              var dayname = new Date(value.dt * 1000).toLocaleDateString("en", {
+                weekday: "long",
+              });
+              var icon = value.weather[0].icon;
+              var temp = value.temp.day.toFixed(0);
+              fday = `<div class="forecast-day">
+  				<p>${dayname}</p>
+  				<img src="http://openweathermap.org/img/w/${icon}.png" alt="icon">
+  				<div class="forecast-day--temp">${temp}<sup>°C</sup></div>
+  			</div>`;
+              forecastEl[0].insertAdjacentHTML("beforeend", fday);
+            }
+          });
+        });
+      })
+      .catch(function (err) {
+        console.log("Fetch Error :-S", err);
+      });
+  };
+</script>
+
+<!-- lat = c.coord.lat; lon = c.coord.lon;
+`https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=current,minutely,hourly,alerts&appid=159e64183abbb4e5f69b04d1b6ea762c&&units=metric`
+); -->
